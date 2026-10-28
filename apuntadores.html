@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dominando Apuntadores & Gestión de Memoria: C vs Python</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        techDark: '#0b0f19',
+                        techCard: '#111827',
+                        techBorder: '#1f2937',
+                        neonBlue: '#38bdf8',
+                        neonGreen: '#4ade80',
+                        neonPurple: '#c084fc',
+                        neonAmber: '#fbbf24',
+                        neonRose: '#fb7185'
+                    },
+                    fontFamily: {
+                        mono: ['Fira Code', 'Consolas', 'Monaco', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #e5e7eb;
+            scroll-behavior: smooth;
+        }
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+        .glow-blue {
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+        .glow-purple {
+            box-shadow: 0 0 15px rgba(192, 132, 252, 0.2);
+        }
+        .glow-green {
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
+        }
+        .pointer-line {
+            stroke-dasharray: 8;
+            animation: dash 1.5s linear infinite;
+        }
+        @keyframes dash {
+            to {
+                stroke-dashoffset: -16;
+            }
+        }
+    </style>
+</head>
+<body class="bg-techDark text-gray-200 antialiased min-h-screen flex flex-col md:flex-row">
+
+    <!-- Mobile Header -->
+    <header class="md:hidden flex justify-between items-center bg-techCard p-4 border-b border-techBorder sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-microchip text-neonBlue text-xl"></i>
+            <span class="font-bold text-lg text-white">MemPointer<span class="text-neonBlue">Lab</span></span>
+        </div>
+        <button id="mobileMenuBtn" class="text-gray-300 hover:text-white text-xl">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </header>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed md:sticky top-0 h-screen w-64 bg-techCard border-r border-techBorder flex flex-col justify-between p-4 z-40 transition-transform duration-300 -translate-x-full md:translate-x-0">
+        <div>
+            <!-- Logo -->
+            <div class="hidden md:flex items-center gap-3 px-2 py-4 border-b border-techBorder mb-6">
+                <i class="fa-solid fa-microchip text-neonBlue text-2xl"></i>
+                <div>
+                    <h1 class="font-extrabold text-lg text-white tracking-wide">MemPointer<span class="text-neonBlue">Lab</span></h1>
+                    <p class="text-xs text-gray-400">Ingeniería de Sistemas</p>
+                </div>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="space-y-1">
+                <a href="#fundamentos" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-neonBlue transition">
+                    <i class="fa-solid fa-layer-group w-5 text-neonBlue"></i>
+                    <span>1. Fundamentos</span>
+                </a>
+                <a href="#eficiencia" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-neonGreen transition">
+                    <i class="fa-solid fa-gauge-high w-5 text-neonGreen"></i>
+                    <span>2. Eficiencia Algorítmica</span>
+                </a>
+                <a href="#simulador-c" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-neonPurple transition">
+                    <i class="fa-solid fa-memory w-5 text-neonPurple"></i>
+                    <span>3. Simulador C</span>
+                </a>
+                <a href="#simulador-python" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-neonAmber transition">
+                    <i class="fa-brands fa-python w-5 text-neonAmber"></i>
+                    <span>4. Referencias Python</span>
+                </a>
+                <a href="#ejemplos" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-neonRose transition">
+                    <i class="fa-solid fa-code w-5 text-neonRose"></i>
+                    <span>5. Código Práctico</span>
+                </a>
+                <a href="#desafios" class="nav-link flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-yellow-400 transition">
+                    <i class="fa-solid fa-trophy w-5 text-yellow-400"></i>
+                    <span>6. Retos & Quizzes</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Academic Footer Badge -->
+        <div class="p-3 bg-gray-900/60 rounded-xl border border-gray-800 text-xs text-gray-400">
+            <p class="font-semibold text-gray-300">Docencia Universitaria</p>
+            <p class="mt-1">Estructuras de Datos & Arquitectura de Software</p>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 md:p-8 max-w-7xl mx-auto space-y-12 overflow-x-hidden">
+
+        <!-- Hero Section -->
+        <header class="bg-gradient-to-r from-gray-900 via-techCard to-gray-900 p-6 md:p-10 rounded-2xl border border-techBorder relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-neonBlue/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute right-1/3 -top-10 w-64 h-64 bg-neonPurple/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="relative z-10 max-w-3xl">
+                <span class="inline-block px-3 py-1 bg-neonBlue/10 text-neonBlue text-xs font-semibold rounded-full border border-neonBlue/20 mb-3">
+                    <i class="fa-solid fa-graduation-cap mr-1"></i> Módulo Interactivo para Ingeniería
+                </span>
+                <h1 class="text-3xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4">
+                    Dominando <span class="text-transparent bg-clip-text bg-gradient-to-r from-neonBlue via-neonPurple to-neonGreen">Apuntadores</span> & Gestión de Memoria
+                </h1>
+                <p class="text-gray-300 text-base md:text-lg leading-relaxed mb-6">
+                    Comprende el comportamiento interno de la arquitectura de computadores, optimiza algoritmos al evitar el copiado ineficiente de estructuras y explora las diferencias fundamentales entre la manipulación directa de memoria en **C** y el modelo de referencias a objetos en **Python**.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#simulador-c" class="bg-neonBlue hover:bg-sky-400 text-techDark font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg shadow-neonBlue/20">
+                        <i class="fa-solid fa-play"></i> Probar Simuladores
+                    </a>
+                    <a href="#eficiencia" class="bg-gray-800 hover:bg-gray-700 text-white font-semibold px-5 py-2.5 rounded-xl border border-gray-700 transition flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line"></i> Análisis de Eficiencia
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- SECCIÓN 1: FUNDAMENTOS DE MEMORIA -->
+        <section id="fundamentos" class="space-y-6">
+            <div class="border-b border-techBorder pb-3">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i class="fa-solid fa-layer-group text-neonBlue"></i>
+                    1. Introducción y Conceptos Fundamentales
+                </h2>
+                <p class="text-gray-400 text-sm mt-1">Cómo la RAM organiza los datos y cómo interaccionan C y Python con ella.</p>
+            </div>
+
+            <!-- Grid de Arquitectura Stack vs Heap -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- RAM & Address -->
+                <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-4">
+                    <h3 class="text-lg font-bold text-neonBlue flex items-center gap-2">
+                        <i class="fa-solid fa-microchip"></i> Memoria RAM & Direccionamiento
+                    </h3>
+                    <p class="text-gray-300 text-sm leading-relaxed">
+                        La memoria RAM es una secuencia contigua de **celdas o bytes**, donde cada una posee una **dirección única** (expresada habitualmente en hexadecimal, ej: <code class="text-neonAmber code-font">0x7ffd9e42</code>). 
+                    </p>
+                    <div class="bg-gray-900/80 p-4 rounded-xl border border-gray-800 space-y-2">
+                        <div class="flex justify-between text-xs text-gray-400 font-mono">
+                            <span>Dirección Hex</span>
+                            <span>Variable en C</span>
+                            <span>Valor en Byte</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-800/60 rounded border border-gray-700 text-sm font-mono">
+                            <span class="text-neonAmber">0x7FFE00</span>
+                            <span class="text-neonGreen">int x = 42;</span>
+                            <span class="text-white font-bold">00000000 ... 00101010</span>
+                        </div>
+                        <div class="flex justify-between items-center p-2 bg-gray-800/60 rounded border border-gray-700 text-sm font-mono">
+                            <span class="text-neonAmber">0x7FFE04</span>
+                            <span class="text-neonPurple">int *ptr = &x;</span>
+                            <span class="text-neonAmber font-bold">0x7FFE00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stack vs Heap -->
+                <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-4">
+                    <h3 class="text-lg font-bold text-neonPurple flex items-center gap-2">
+                        <i class="fa-solid fa-server"></i> Stack vs. Heap
+                    </h3>
+                    <div class="space-y-3 text-sm">
+                        <div class="p-3 bg-gray-900/60 rounded-xl border-l-4 border-neonBlue">
+                            <span class="font-bold text-neonBlue">Stack (Pila):</span> Memoria estática, de asignación rápida y gestión automática LIFO (Last In, First Out). Almacena variables locales y marcos de llamadas a funciones.
+                        </div>
+                        <div class="p-3 bg-gray-900/60 rounded-xl border-l-4 border-neonPurple">
+                            <span class="font-bold text-neonPurple">Heap (Montículo):</span> Memoria dinámica de gran tamaño pero gestión manual (en C mediante <code class="text-neonGreen code-font">malloc/free</code>). Requiere mayor tiempo de gestión y puede sufrir de fragmentación.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operadores C vs Referencias Python -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- C Operators -->
+                <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-3">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-blue-500/20 text-neonBlue text-xs rounded border border-blue-500/30">C</span>
+                        Operadores Clave de Memoria
+                    </h3>
+                    <ul class="space-y-3 text-sm text-gray-300">
+                        <li class="flex items-start gap-3">
+                            <code class="text-neonGreen bg-gray-900 px-2 py-1 rounded border border-gray-800 font-bold">&</code>
+                            <div>
+                                <strong class="text-white">Operador de Dirección (Referencia):</strong> Devuelve la ubicación física exacta de una variable en la memoria RAM.
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <code class="text-neonPurple bg-gray-900 px-2 py-1 rounded border border-gray-800 font-bold">*</code>
+                            <div>
+                                <strong class="text-white">Operador de Desreferencia (Indirección):</strong> Accede u opera directamente sobre el contenido almacenado en la dirección apuntada.
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Python Model -->
+                <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-3">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-amber-500/20 text-neonAmber text-xs rounded border border-amber-500/30">Python</span>
+                        Modelo "Variables como Etiquetas"
+                    </h3>
+                    <p class="text-sm text-gray-300 leading-relaxed">
+                        En Python **no existen apuntadores explícitos** con desreferencia de memoria. En su lugar, todas las variables son **etiquetas o nombres que apuntan a objetos** creados en el Heap.
+                    </p>
+                    <div class="p-3 bg-gray-900/80 rounded-xl border border-gray-800 text-xs font-mono space-y-1">
+                        <p class="text-gray-400"># Obtener la dirección interna del objeto</p>
+                        <p class="text-neonAmber">x = [1, 2, 3]</p>
+                        <p class="text-gray-300">print(id(x)) <span class="text-gray-500"># Muestra la dirección de memoria virtual (id)</span></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 2: EFICIENCIA ALGORÍTMICA -->
+        <section id="eficiencia" class="space-y-6">
+            <div class="border-b border-techBorder pb-3">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i class="fa-solid fa-gauge-high text-neonGreen"></i>
+                    2. Impacto de los Apuntadores en la Eficiencia Algorítmica
+                </h2>
+                <p class="text-gray-400 text-sm mt-1">Comparación de costo temporal y espacial en llamadas a funciones y estructuras dinámicas.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Paso por Valor vs Referencia -->
+                <div class="lg:col-span-2 bg-techCard p-6 rounded-2xl border border-techBorder space-y-4">
+                    <h3 class="text-lg font-bold text-white">Paso por Valor vs. Paso por Referencia</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 bg-red-950/20 border border-red-500/30 rounded-xl space-y-2">
+                            <span class="text-xs font-bold text-red-400 uppercase tracking-wider">Paso por Valor</span>
+                            <h4 class="font-bold text-white text-sm">Copia de Datos Complenta</h4>
+                            <p class="text-xs text-gray-300">Se duplica toda la estructura de datos en el Stack de la función receptora.</p>
+                            <div class="text-xs font-mono bg-gray-900 p-2 rounded text-red-300">
+                                Copiar Estructura (1 MB):<br>
+                                <span class="font-bold text-red-400">Tiempo: O(N) | Espacio: O(N)</span>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded-xl space-y-2">
+                            <span class="text-xs font-bold text-neonGreen uppercase tracking-wider">Paso por Apuntador / Referencia</span>
+                            <h4 class="font-bold text-white text-sm">Transferencia de Dirección</h4>
+                            <p class="text-xs text-gray-300">Sólo se transmite una dirección de memoria fija (4 u 8 bytes en arquitectura de 64-bits).</p>
+                            <div class="text-xs font-mono bg-gray-900 p-2 rounded text-emerald-300">
+                                Transmitir Apuntador (8 bytes):<br>
+                                <span class="font-bold text-neonGreen">Tiempo: O(1) | Espacio: O(1)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico Comparativo SVG -->
+                    <div class="pt-4 border-t border-gray-800">
+                        <h4 class="text-sm font-semibold text-gray-300 mb-2">Comparativa de Sobrecarga en Memoria (Arreglo de 10,000 elementos)</h4>
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <div class="flex justify-between text-gray-400 mb-1">
+                                    <span>Paso por Valor (Copia completa)</span>
+                                    <span class="text-red-400 font-mono">40,000 Bytes extra</span>
+                                </div>
+                                <div class="w-full bg-gray-800 h-3 rounded-full overflow-hidden">
+                                    <div class="bg-red-500 h-full w-full rounded-full"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-gray-400 mb-1">
+                                    <span>Paso por Apuntador (Dirección de memoria)</span>
+                                    <span class="text-neonGreen font-mono">8 Bytes (Constante)</span>
+                                </div>
+                                <div class="w-full bg-gray-800 h-3 rounded-full overflow-hidden">
+                                    <div class="bg-neonGreen h-full w-[2%] rounded-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estructuras de Datos Dinámicas -->
+                <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-diagram-project text-neonAmber"></i>
+                            Estructuras Dinámicas
+                        </h3>
+                        <p class="text-xs text-gray-300 leading-relaxed mb-4">
+                            Sin apuntadores, las estructuras contiguas como vectores fijos imponen un tamaño máximo rígido o reasignaciones costosas $O(N)$.
+                        </p>
+                        <div class="space-y-2 text-xs">
+                            <div class="p-2.5 bg-gray-900 rounded-lg border border-gray-800">
+                                <span class="font-bold text-neonBlue">Listas Enlazadas:</span> Inserción/Eliminación $O(1)$ sin reasignar arreglos enteros.
+                            </div>
+                            <div class="p-2.5 bg-gray-900 rounded-lg border border-gray-800">
+                                <span class="font-bold text-neonPurple">Árboles y Grafos:</span> Enlaces flexibles no lineales interconectados en el Heap.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-neonAmber/10 border border-neonAmber/20 rounded-xl text-xs text-neonAmber font-medium">
+                        <i class="fa-solid fa-lightbulb mr-1"></i> La asignación dinámica (<code class="code-font">malloc</code>) otorga control total sobre la longevidad de los datos.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 3: SIMULADOR INTERACTIVO C -->
+        <section id="simulador-c" class="space-y-6">
+            <div class="border-b border-techBorder pb-3">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i class="fa-solid fa-memory text-neonPurple"></i>
+                    3. Simulador Interactivo de Apuntadores en C
+                </h2>
+                <p class="text-gray-400 text-sm mt-1">Visualiza los cambios de valor, asignación de direcciones y la desreferencia en tiempo real.</p>
+            </div>
+
+            <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-6">
+                <!-- Panel de Controles del Simulador -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <button onclick="simC_step('assign_var')" class="p-3 bg-gray-800 hover:bg-gray-700 rounded-xl border border-gray-700 text-xs font-semibold text-white flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-plus text-neonGreen"></i> 1. Declarar <code class="code-font text-neonGreen">int x = 25;</code>
+                    </button>
+                    <button onclick="simC_step('assign_ptr')" class="p-3 bg-gray-800 hover:bg-gray-700 rounded-xl border border-gray-700 text-xs font-semibold text-white flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-link text-neonBlue"></i> 2. Apuntar <code class="code-font text-neonBlue">int *p = &x;</code>
+                    </button>
+                    <button onclick="simC_step('modify_deref')" class="p-3 bg-gray-800 hover:bg-gray-700 rounded-xl border border-gray-700 text-xs font-semibold text-white flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-pen-to-square text-neonRose"></i> 3. Desreferenciar <code class="code-font text-neonRose">*p = 99;</code>
+                    </button>
+                </div>
+
+                <!-- Representación Visual de la Memoria RAM -->
+                <div class="bg-gray-950 p-6 rounded-xl border border-gray-800 relative">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-microchip text-neonPurple"></i> Mapa de Pila (Stack Memory RAM)
+                    </h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                        <!-- Celda Variable X -->
+                        <div id="cell-x" class="p-4 rounded-xl border-2 border-gray-800 bg-gray-900 transition-all duration-500">
+                            <div class="flex justify-between items-center text-xs text-gray-400 mb-2 font-mono">
+                                <span>Variable: <strong class="text-white">x</strong></span>
+                                <span class="text-neonAmber">Dirección: 0x7FFE04</span>
+                            </div>
+                            <div class="text-center py-4 bg-gray-950 rounded-lg border border-gray-800">
+                                <span class="text-xs text-gray-500 block mb-1">Valor Almacenado</span>
+                                <span id="val-x" class="text-3xl font-extrabold text-neonGreen font-mono">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Celda Apuntador P -->
+                        <div id="cell-p" class="p-4 rounded-xl border-2 border-gray-800 bg-gray-900 transition-all duration-500 opacity-50">
+                            <div class="flex justify-between items-center text-xs text-gray-400 mb-2 font-mono">
+                                <span>Apuntador: <strong class="text-white">p</strong></span>
+                                <span class="text-neonAmber">Dirección: 0x7FFE0C</span>
+                            </div>
+                            <div class="text-center py-4 bg-gray-950 rounded-lg border border-gray-800">
+                                <span class="text-xs text-gray-500 block mb-1">Dirección Almacenada</span>
+                                <span id="val-p" class="text-xl font-bold text-gray-600 font-mono">NULL</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Log explicativo del paso actual -->
+                    <div id="simC-log" class="mt-6 p-3 bg-gray-900/90 rounded-lg border border-gray-800 text-xs font-mono text-neonBlue flex items-center gap-2">
+                        <i class="fa-solid fa-terminal"></i>
+                        <span>Estado inicial: Memoria sin inicializar. Haz clic en los pasos superiores.</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 4: SIMULADOR REFERENCIAS PYTHON -->
+        <section id="simulador-python" class="space-y-6">
+            <div class="border-b border-techBorder pb-3">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i class="fa-brands fa-python text-neonAmber"></i>
+                    4. Simulador Interactivo del Modelo de Referencias en Python
+                </h2>
+                <p class="text-gray-400 text-sm mt-1">Descubre la diferencia entre Inmutabilidad (enteros) y Mutabilidad (listas).</p>
+            </div>
+
+            <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-6">
+                <!-- Selector de Modo: Mutabilidad vs Inmutabilidad -->
+                <div class="flex gap-4 border-b border-gray-800 pb-4">
+                    <button id="btn-tab-immut" onclick="setPyMode('immutable')" class="px-4 py-2 bg-neonAmber/20 text-neonAmber border border-neonAmber/30 text-xs font-bold rounded-xl transition">
+                        Enteros (Inmutables)
+                    </button>
+                    <button id="btn-tab-mut" onclick="setPyMode('mutable')" class="px-4 py-2 bg-gray-800 text-gray-400 hover:text-white border border-gray-700 text-xs font-bold rounded-xl transition">
+                        Listas (Mutables)
+                    </button>
+                </div>
+
+                <!-- Panel interactivo de código / acciones -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Columna Izquierda: Etiquetas (Nombres de Variables) -->
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            <i class="fa-solid fa-tag text-neonBlue"></i> Namespace / Etiquetas
+                        </h4>
+                        
+                        <div id="py-variables-container" class="space-y-3">
+                            <!-- Renderizado Dinámico por JS -->
+                        </div>
+
+                        <button id="py-action-btn" onclick="triggerPyAction()" class="w-full py-2.5 bg-neonAmber hover:bg-yellow-400 text-techDark font-bold text-xs rounded-xl transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play"></i> Reasignar o Modificar Objeto
+                        </button>
+                    </div>
+
+                    <!-- Columna Derecha: Objetos en Heap -->
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                            <i class="fa-solid fa-cubes text-neonPurple"></i> Objetos en Memoria Heap
+                        </h4>
+
+                        <div id="py-objects-container" class="space-y-3">
+                            <!-- Renderizado Dinámico por JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Console Explicativa -->
+                <div id="py-log" class="p-3 bg-gray-950 rounded-lg border border-gray-800 text-xs font-mono text-neonAmber">
+                    Explicación: Las variables a y b apuntan exactamente al mismo objeto entero en memoria.
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 5: EJEMPLOS PRÁCTICOS -->
+        <section id="ejemplos" class="space-y-6">
+            <div class="border-b border-techBorder pb-3">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i class="fa-solid fa-code text-neonRose"></i>
+                    5. Ejemplos Prácticos y Código
+                </h2>
+                <p class="text-gray-400 text-sm mt-1">Patrones de código esenciales en C y Python con análisis paso a paso.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Ejemplo C: Swap e Intercambio de Valores -->
+                <div class="bg-techCard rounded-2xl border border-techBorder overflow-hidden flex flex-col justify-between">
+                    <div class="p-4 bg-gray-900 border-b border-techBorder flex justify-between items-center">
+                        <span class="text-xs font-bold text-neonBlue font-mono flex items-center gap-2">
+                            <i class="fa-solid fa-code-compare"></i> swap_pointers.c
+                        </span>
+                        <span class="text-xs bg-blue-500/20 text-neonBlue px-2 py-0.5 rounded border border-blue-500/30">C</span>
+                    </div>
+                    <pre class="p-4 text-xs code-font text-gray-300 bg-gray-950 overflow-x-auto"><code><span class="text-purple-400">#include</span> <span class="text-emerald-400">&lt;stdio.h&gt;</span>
+
+<span class="text-gray-500">// Intercambio mediante Paso por Apuntador</span>
+<span class="text-blue-400">void</span> <span class="text-yellow-300">swap</span>(<span class="text-blue-400">int</span> *a, <span class="text-blue-400">int</span> *b) {
+    <span class="text-blue-400">int</span> temp = *a; <span class="text-gray-500">// temp guarda el VALOR de 'a'</span>
+    *a = *b;       <span class="text-gray-500">// 'a' recibe el VALOR de 'b'</span>
+    *b = temp;     <span class="text-gray-500">// 'b' recibe 'temp'</span>
+}
+
+<span class="text-blue-400">int</span> <span class="text-yellow-300">main</span>() {
+    <span class="text-blue-400">int</span> x = <span class="text-amber-400">10</span>, y = <span class="text-amber-400">20</span>;
+    <span class="text-yellow-300">swap</span>(&x, &y); <span class="text-gray-500">// Enviamos las DIRECCIONES de x e y</span>
+    <span class="text-yellow-300">printf</span>(<span class="text-emerald-400">"x=%d, y=%d\n"</span>, x, y); <span class="text-gray-500">// Resultado: x=20, y=10</span>
+    <span class="text-purple-400">return</span> <span class="text-amber-400">0</span>;
+}</code></pre>
+                    <div class="p-4 bg-gray-900/60 border-t border-techBorder text-xs text-gray-300 space-y-1">
+                        <p class="font-semibold text-white">Análisis Técnico:</p>
+                        <p>Si pasáramos <code class="code-font text-neonBlue">swap(x, y)</code> sin <code class="code-font text-neonGreen">&</code>, la función crearía copias locales en la pila y las variables originales <code class="code-font">x</code> e <code class="code-font">y</code> permanecerían inalteradas.</p>
+                    </div>
+                </div>
+
+                <!-- Ejemplo Python: Objeto-Referencia y Efectos Secundarios -->
+                <div class="bg-techCard rounded-2xl border border-techBorder overflow-hidden flex flex-col justify-between">
+                    <div class="p-4 bg-gray-900 border-b border-techBorder flex justify-between items-center">
+                        <span class="text-xs font-bold text-neonAmber font-mono flex items-center gap-2">
+                            <i class="fa-brands fa-python"></i> mutability_effects.py
+                        </span>
+                        <span class="text-xs bg-amber-500/20 text-neonAmber px-2 py-0.5 rounded border border-amber-500/30">Python</span>
+                    </div>
+                    <pre class="p-4 text-xs code-font text-gray-300 bg-gray-950 overflow-x-auto"><code><span class="text-blue-400">def</span> <span class="text-yellow-300">modificar_lista</span>(mi_lista):
+    <span class="text-gray-500"># Modifica directamente el objeto mutable referenciado</span>
+    mi_lista.append(<span class="text-amber-400">99</span>) 
+
+<span class="text-blue-400">def</span> <span class="text-yellow-300">intentar_modificar_num</span>(numero):
+    <span class="text-gray-500"># Reasigna el nombre local a un nuevo objeto entero</span>
+    numero += <span class="text-amber-400">10</span> 
+
+datos = [<span class="text-amber-400">1</span>, <span class="text-amber-400">2</span>, <span class="text-amber-400">3</span>]
+valor = <span class="text-amber-400">5</span>
+
+<span class="text-yellow-300">modificar_lista</span>(datos)
+<span class="text-yellow-300">intentar_modificar_num</span>(valor)
+
+<span class="text-yellow-300">print</span>(datos) <span class="text-gray-500"># [1, 2, 3, 99] -&gt; ¡El objeto original MUTÓ!</span>
+<span class="text-yellow-300">print</span>(valor) <span class="text-gray-500"># 5 -&gt; ¡INMUTABLE! La reasignación no afecta el origen</span></code></pre>
+                    <div class="p-4 bg-gray-900/60 border-t border-techBorder text-xs text-gray-300 space-y-1">
+                        <p class="font-semibold text-white">Análisis Técnico:</p>
+                        <p>Python evalúa como "Paso por Asignación de Objeto". Las estructuras mutables pasadas a funciones reflejan cambios externamente a menos que se cree una copia explícita (<code class="code-font text-neonAmber">datos.copy()</code>).</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN 6: QUIZZES Y DESAFÍOS -->
+        <section id="desafios" class="space-y-6">
+            <div class="border-b border-techBorder pb-3">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-3">
+                    <i class="fa-solid fa-trophy text-yellow-400"></i>
+                    6. Ejercicios Propuestos y Autoevaluación
+                </h2>
+                <p class="text-gray-400 text-sm mt-1">Pone a prueba tus conocimientos con estos retos prácticos y solución desplegable.</p>
+            </div>
+
+            <!-- Quiz Interactivo -->
+            <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-circle-question text-neonBlue"></i>
+                    Quiz Rápido de Autoevaluación
+                </h3>
+
+                <div class="space-y-4 text-sm">
+                    <div class="p-4 bg-gray-900/80 rounded-xl border border-gray-800 space-y-3">
+                        <p class="font-semibold text-gray-200">1. En Lenguaje C, ¿qué sucede si ejecutas <code class="code-font text-neonBlue">int *ptr = NULL; *ptr = 10;</code>?</p>
+                        <div class="space-y-2 text-xs">
+                            <button onclick="checkQuiz(1, false, this)" class="w-full text-left p-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300">a) La variable NULL toma el valor de 10.</button>
+                            <button onclick="checkQuiz(1, true, this)" class="w-full text-left p-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300">b) Ocurre una violación de segmento (Segmentation Fault / Crasheo).</button>
+                            <button onclick="checkQuiz(1, false, this)" class="w-full text-left p-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300">c) Se asigna automáticamente memoria en el Heap.</button>
+                        </div>
+                        <div id="quiz-ans-1" class="hidden text-xs p-2.5 rounded-lg font-semibold"></div>
+                    </div>
+
+                    <div class="p-4 bg-gray-900/80 rounded-xl border border-gray-800 space-y-3">
+                        <p class="font-semibold text-gray-200">2. Si en Python asignamos <code class="code-font text-neonAmber">a = [1, 2]; b = a; b.append(3)</code>, ¿cuál es el estado final de <code class="code-font text-neonAmber">a</code>?</p>
+                        <div class="space-y-2 text-xs">
+                            <button onclick="checkQuiz(2, false, this)" class="w-full text-left p-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300">a) [1, 2]</button>
+                            <button onclick="checkQuiz(2, true, this)" class="w-full text-left p-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300">b) [1, 2, 3]</button>
+                            <button onclick="checkQuiz(2, false, this)" class="w-full text-left p-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg transition text-gray-300">c) Error de sintaxis por duplicación de referencia.</button>
+                        </div>
+                        <div id="quiz-ans-2" class="hidden text-xs p-2.5 rounded-lg font-semibold"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Desafío Práctico con Spoiler/Toggle -->
+            <div class="bg-techCard p-6 rounded-2xl border border-techBorder space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-code-fork text-neonPurple"></i>
+                    Reto de Programación: Aritmética de Apuntadores en C
+                </h3>
+                <p class="text-xs text-gray-300 leading-relaxed">
+                    Escribe una función en C que recorra e imprima los elementos de un arreglo de enteros utilizando **únicamente aritmética de apuntadores** (sin usar corchetes <code class="code-font text-neonRose">arr[i]</code>).
+                </p>
+
+                <!-- Spoiler Toggle Button -->
+                <button onclick="toggleSolution()" class="px-4 py-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl text-xs font-bold text-neonPurple flex items-center gap-2 transition">
+                    <i class="fa-solid fa-eye" id="toggle-icon"></i>
+                    <span id="toggle-text">Ver Solución Propuesta</span>
+                </button>
+
+                <!-- Spoiler Content -->
+                <div id="solution-box" class="hidden space-y-3 pt-3 border-t border-gray-800">
+                    <div class="bg-gray-950 p-4 rounded-xl border border-gray-800">
+                        <pre class="text-xs code-font text-gray-300 overflow-x-auto"><code><span class="text-blue-400">void</span> <span class="text-yellow-300">imprimir_arreglo</span>(<span class="text-blue-400">int</span> *ptr, <span class="text-blue-400">int</span> tam) {
+    <span class="text-purple-400">for</span> (<span class="text-blue-400">int</span> i = <span class="text-amber-400">0</span>; i &lt; tam; i++) {
+        <span class="text-gray-500">// *(ptr + i) desplaza la dirección en i * sizeof(int) bytes</span>
+        <span class="text-yellow-300">printf</span>(<span class="text-emerald-400">"Elemento %d: %d\n"</span>, i, *(ptr + i)); 
+    }
+}</code></pre>
+                    </div>
+                    <p class="text-xs text-gray-400">
+                        <strong class="text-neonGreen">Nota Docente:</strong> Sumar <code class="code-font">1</code> a un apuntador de tipo <code class="code-font">int*</code> no suma un byte individual, sino la cantidad de bytes que ocupa el tipo de dato (típicamente 4 bytes para enteros).
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-xs text-gray-500 py-6 border-t border-techBorder">
+            <p>© 2026 MemPointerLab - Material Didáctico Universitario para Ingeniería de Sistemas.</p>
+        </footer>
+    </main>
+
+    <!-- LOGICA JAVASCRIPT SIMULADORES Y UI -->
+    <script>
+        // --- NAVEGACIÓN MOBILE ---
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.getElementById('sidebar');
+
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        // Close sidebar on option click mobile
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth < 768) {
+                    sidebar.classList.add('-translate-x-full');
+                }
+            });
+        });
+
+        // --- SIMULADOR LENGUAJE C ---
+        let cState = 0;
+
+        function simC_step(step) {
+            const cellX = document.getElementById('cell-x');
+            const cellP = document.getElementById('cell-p');
+            const valX = document.getElementById('val-x');
+            const valP = document.getElementById('val-p');
+            const log = document.getElementById('simC-log');
+
+            if (step === 'assign_var') {
+                valX.innerText = '25';
+                cellX.classList.add('border-neonGreen');
+                log.innerHTML = `<i class="fa-solid fa-terminal text-neonGreen"></i> Variable x asignada en dirección <span class="text-neonAmber font-bold">0x7FFE04</span> con valor <span class="text-neonGreen font-bold">25</span>.`;
+            } else if (step === 'assign_ptr') {
+                cellP.classList.remove('opacity-50');
+                cellP.classList.add('border-neonBlue');
+                valP.innerText = '0x7FFE04';
+                valP.className = 'text-xl font-bold text-neonAmber font-mono';
+                log.innerHTML = `<i class="fa-solid fa-terminal text-neonBlue"></i> Apuntador p guarda la DIRECCIÓN de x (<span class="text-neonAmber font-bold">0x7FFE04</span>). Ahora 'p' apunta a 'x'.`;
+            } else if (step === 'modify_deref') {
+                if (valP.innerText === 'NULL') {
+                    log.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-neonRose"></i> Error: ¡No puedes desreferenciar un apuntador NULL! Ejecuta primero el paso 2.`;
+                    return;
+                }
+                valX.innerText = '99';
+                cellX.classList.add('glow-green');
+                setTimeout(() => cellX.classList.remove('glow-green'), 1000);
+                log.innerHTML = `<i class="fa-solid fa-terminal text-neonRose"></i> Mediante <code class="code-font">*p = 99</code>, accedemos a la dirección <span class="text-neonAmber">0x7FFE04</span> y cambiamos el valor de x a <span class="text-neonGreen font-bold">99</span>.`;
+            }
+        }
+
+        // --- SIMULADOR PYTHON MEMORY MODEL ---
+        let pyMode = 'immutable'; // 'immutable' or 'mutable'
+        let pyStep = 0;
+
+        function setPyMode(mode) {
+            pyMode = mode;
+            pyStep = 0;
+            const btnImmut = document.getElementById('btn-tab-immut');
+            const btnMut = document.getElementById('btn-tab-mut');
+
+            if (mode === 'immutable') {
+                btnImmut.className = "px-4 py-2 bg-neonAmber/20 text-neonAmber border border-neonAmber/30 text-xs font-bold rounded-xl transition";
+                btnMut.className = "px-4 py-2 bg-gray-800 text-gray-400 hover:text-white border border-gray-700 text-xs font-bold rounded-xl transition";
+            } else {
+                btnMut.className = "px-4 py-2 bg-neonAmber/20 text-neonAmber border border-neonAmber/30 text-xs font-bold rounded-xl transition";
+                btnImmut.className = "px-4 py-2 bg-gray-800 text-gray-400 hover:text-white border border-gray-700 text-xs font-bold rounded-xl transition";
+            }
+            renderPySim();
+        }
+
+        function renderPySim() {
+            const varContainer = document.getElementById('py-variables-container');
+            const objContainer = document.getElementById('py-objects-container');
+            const log = document.getElementById('py-log');
+
+            if (pyMode === 'immutable') {
+                if (pyStep === 0) {
+                    varContainer.innerHTML = `
+                        <div class="p-3 bg-gray-900 rounded-xl border border-gray-800 flex justify-between items-center text-xs">
+                            <span class="font-bold text-neonBlue">a</span>
+                            <span class="text-neonAmber font-mono">id: 0x1004</span>
+                        </div>
+                        <div class="p-3 bg-gray-900 rounded-xl border border-gray-800 flex justify-between items-center text-xs">
+                            <span class="font-bold text-neonBlue">b</span>
+                            <span class="text-neonAmber font-mono">id: 0x1004</span>
+                        </div>
+                    `;
+                    objContainer.innerHTML = `
+                        <div class="p-3 bg-gray-900 rounded-xl border border-neonAmber flex justify-between items-center text-xs">
+                            <div>
+                                <span class="text-gray-400 block">Objeto int</span>
+                                <span class="text-lg font-bold text-white font-mono">10</span>
+                            </div>
+                            <span class="text-neonAmber font-mono text-xs">id: 0x1004</span>
+                        </div>
+                    `;
+                    log.innerText = "Estado 1: Tanto 'a' como 'b' referencian al mismo objeto inmutable int(10) en el Heap.";
+                } else {
+                    varContainer.innerHTML = `
+                        <div class="p-3 bg-gray-900 rounded-xl border border-gray-800 flex justify-between items-center text-xs">
+                            <span class="font-bold text-neonBlue">a</span>
+                            <span class="text-neonAmber font-mono">id: 0x1004</span>
+                        </div>
+                        <div class="p-3 bg-gray-900 rounded-xl border border-neonPurple flex justify-between items-center text-xs">
+                            <span class="font-bold text-neonBlue">b (reasignado)</span>
+                            <span class="text-neonPurple font-mono">id: 0x2088</span>
+                        </div>
+                    `;
+                    objContainer.innerHTML = `
+                        <div class="p-3 bg-gray-900 rounded-xl border border-gray-800 flex justify-between items-center text-xs">
+                            <div>
+                                <span class="text-gray-400 block">Objeto int</span>
+                                <span class="text-lg font-bold text-white font-mono">10</span>
+                            </div>
+                            <span class="text-neonAmber font-mono text-xs">id: 0x1004</span>
+                        </div>
+                        <div class="p-3 bg-gray-900 rounded-xl border border-neonPurple flex justify-between items-center text-xs">
+                            <div>
+                                <span class="text-gray-400 block">Nuevo Objeto int (b = b + 1)</span>
+                                <span class="text-lg font-bold text-neonPurple font-mono">11</span>
+                            </div>
+                            <span class="text-neonPurple font-mono text-xs">id: 0x2088</span>
+                        </div>
+                    `;
+                    log.innerText = "Estado 2: Como los enteros son inmutables, 'b = b + 1' NO modifica el objeto 10. Crea un NUEVO objeto 11 y cambia la referencia de 'b'.";
+                }
+            } else {
+                // Mutable Mode (Lists)
+                if (pyStep === 0) {
+                    varContainer.innerHTML = `
+                        <div class="p-3 bg-gray-900 rounded-xl border border-gray-800 flex justify-between items-center text-xs">
+                            <span class="font-bold text-neonGreen">lista_a</span>
+                            <span class="text-neonAmber font-mono">id: 0x9000</span>
+                        </div>
+                        <div class="p-3 bg-gray-900 rounded-xl border border-gray-800 flex justify-between items-center text-xs">
+                            <span class="font-bold text-neonGreen">lista_b</span>
+                            <span class="text-neonAmber font-mono">id: 0x9000</span>
+                        </div>
+                    `;
+                    objContainer.innerHTML = `
+                        <div class="p-3 bg-gray-900 rounded-xl border border-neonGreen flex justify-between items-center text-xs">
+                            <div>
+                                <span class="text-gray-400 block">Objeto list</span>
+                                <span class="text-lg font-bold text-white font-mono">[1, 2]</span>
+                            </div>
+                            <span class="text-neonAmber font-mono text-xs">id: 0x9000</span>
+                        </div>
+                    `;
+                    log.innerText = "Estado 1: lista_a y lista_b referencian a la misma lista [1, 2].";
+                } else {
+                    varContainer.innerHTML = `
+                        <div class="p-3 bg-gray-900 rounded-xl border border-gray-800 flex justify-between items-center text-xs">
+                            <span class="font-bold text-neonGreen">lista_a</span>
+                            <span class="text-neonAmber font-mono">id: 0x9000</span>
+                        </div>
+                        <div class="p-3 bg-gray-900 rounded-xl border border-gray-800 flex justify-between items-center text-xs">
+                            <span class="font-bold text-neonGreen">lista_b</span>
+                            <span class="text-neonAmber font-mono">id: 0x9000</span>
+                        </div>
+                    `;
+                    objContainer.innerHTML = `
+                        <div class="p-3 bg-gray-900 rounded-xl border border-neonRose flex justify-between items-center text-xs">
+                            <div>
+                                <span class="text-gray-400 block">Objeto list (Mutado vía append)</span>
+                                <span class="text-lg font-bold text-neonRose font-mono">[1, 2, 99]</span>
+                            </div>
+                            <span class="text-neonAmber font-mono text-xs">id: 0x9000</span>
+                        </div>
+                    `;
+                    log.innerText = "Estado 2: Al ejecutar lista_b.append(99), el objeto MUTÓ internamente. Como lista_a apunta al mismo id, ¡lista_a también refleja el cambio!";
+                }
+            }
+        }
+
+        function triggerPyAction() {
+            pyStep = pyStep === 0 ? 1 : 0;
+            renderPySim();
+        }
+
+        // Initialize Python Sim
+        renderPySim();
+
+        // --- QUIZZES Y RETOS ---
+        function checkQuiz(qNum, isCorrect, btnElement) {
+            const ansDiv = document.getElementById(`quiz-ans-${qNum}`);
+            ansDiv.classList.remove('hidden', 'bg-red-500/20', 'text-red-400', 'bg-emerald-500/20', 'text-emerald-400');
+
+            if (isCorrect) {
+                ansDiv.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
+                ansDiv.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> ¡Correcto! Excelente comprensión del concepto.`;
+            } else {
+                ansDiv.classList.add('bg-red-500/20', 'text-red-400', 'border', 'border-red-500/30');
+                ansDiv.innerHTML = `<i class="fa-solid fa-circle-xmark mr-1"></i> Incorrecto. Revisa los apuntadores NULL o la mutabilidad de objetos.`;
+            }
+        }
+
+        function toggleSolution() {
+            const solBox = document.getElementById('solution-box');
+            const icon = document.getElementById('toggle-icon');
+            const text = document.getElementById('toggle-text');
+
+            if (solBox.classList.contains('hidden')) {
+                solBox.classList.remove('hidden');
+                icon.className = "fa-solid fa-eye-slash";
+                text.innerText = "Ocultar Solución";
+            } else {
+                solBox.classList.add('hidden');
+                icon.className = "fa-solid fa-eye";
+                text.innerText = "Ver Solución Propuesta";
+            }
+        }
+    </script>
+</body>
+</html>
